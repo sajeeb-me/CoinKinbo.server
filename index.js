@@ -36,13 +36,12 @@ function verifyJWT(req, res, next) {
 async function run() {
     try {
         await client.connect();
-        const simpleCollection = client.db("database").collection("simple");
         const orderCollection = client.db("database").collection("orders");
         const userCollection = client.db("database").collection("users");
 
         // get
-        app.get('/simple', async (req, res) => {
-            const simple = await simpleCollection.find().toArray();
+        app.get('/order', async (req, res) => {
+            const simple = await orderCollection.find().toArray();
             res.send(simple)
         })
 
