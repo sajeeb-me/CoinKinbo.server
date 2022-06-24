@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const { MongoClient, ServerApiVersion } = require('mongodb');
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 
 require('dotenv').config();
 
@@ -17,12 +18,28 @@ async function run() {
     try {
         await client.connect();
         const simpleCollection = client.db("database").collection("simple");
+        const paymentCollection = client.db("database").collection("payments");
+        const userCollection = client.db("database").collection("users");
 
-        // get items
+        // get
         app.get('/simple', async (req, res) => {
             const simple = await simpleCollection.find().toArray();
             res.send(simple)
         })
+
+
+
+        //put
+        app.put('/user/:email', async (req, res) => {
+            const filter = req.params;
+            const user = req.body;
+            const options = { upsert: true };
+            const updateDoc = { $set: user };
+            const result = await userCollection.updateOne(filter, updateDoc, options);
+            const secretToken = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '6h' });
+            res.send({ result, secretToken })
+        })
+
     }
     catch (error) {
         console.log(error);
