@@ -1,9 +1,10 @@
 const express = require('express');
 const cors = require('cors');
+const jwt = require('jsonwebtoken')
+require('dotenv').config();
 const { MongoClient, ServerApiVersion } = require('mongodb');
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 
-require('dotenv').config();
 
 const app = express();
 const port = process.env.PORT || 5000;
@@ -14,11 +15,29 @@ app.use(express.json());
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.9febz.mongodb.net/?retryWrites=true&w=majority`;
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
 
+function verifyJWT(req, res, next) {
+    const authHeader = req.headers.authorization;
+    // console.log(authHeader);
+    if (!authHeader) {
+        return res.status(401).send({ message: 'Unauthorized access' })
+    }
+    const token = authHeader.split(' ')[1];
+    // console.log('token', token);
+    jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
+        if (err) {
+            // console.log(err)
+            return res.status(403).send({ message: 'Forbidden access' })
+        }
+        req.decoded = decoded;
+        next()
+    })
+}
+
 async function run() {
     try {
         await client.connect();
         const simpleCollection = client.db("database").collection("simple");
-        const paymentCollection = client.db("database").collection("payments");
+        const orderCollection = client.db("database").collection("orders");
         const userCollection = client.db("database").collection("users");
 
         // get
@@ -27,7 +46,26 @@ async function run() {
             res.send(simple)
         })
 
+        // post
+        app.post('/order', verifyJWT, async (req, res) => {
+            const order = req.body;
+            const result = await orderCollection.insertOne(order);
+            res.send(result)
+        })
 
+        app.post("/create-payment-intent", verifyJWT, async (req, res) => {
+            const { price } = req.body;
+            const amount = price * 100;
+
+            const paymentIntent = await stripe.paymentIntents.create({
+                amount: amount,
+                currency: "usd",
+                payment_method_types: ['card']
+            });
+            res.send({
+                clientSecret: paymentIntent.client_secret,
+            });
+        })
 
         //put
         app.put('/user/:email', async (req, res) => {
