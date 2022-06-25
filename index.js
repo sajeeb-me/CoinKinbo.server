@@ -60,7 +60,7 @@ async function run() {
         })
 
         app.get('/all-order', verifyJWT, verifyAdmin, async (req, res) => {
-            const simple = await orderCollection.find().toArray();
+            const simple = (await orderCollection.find().toArray()).reverse();
             res.send(simple)
         })
 
