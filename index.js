@@ -39,6 +39,18 @@ async function run() {
         const orderCollection = client.db("database").collection("orders");
         const userCollection = client.db("database").collection("users");
 
+        // verifyAdmin 
+        const verifyAdmin = async (req, res, next) => {
+            const requester = req.decoded.email;
+            const requesterAccount = await userCollection.findOne({ email: requester })
+            if (requesterAccount.role === 'admin') {
+                next();
+            }
+            else {
+                res.status(403).send({ message: 'Forbidden access' })
+            }
+        }
+
         // get
         app.get('/order', verifyJWT, async (req, res) => {
             const email = req.query.email;
@@ -47,14 +59,21 @@ async function run() {
             res.send(order)
         })
 
-        app.get('/all-order', async (req, res) => {
+        app.get('/all-order', verifyJWT, verifyAdmin, async (req, res) => {
             const simple = await orderCollection.find().toArray();
             res.send(simple)
         })
 
-        app.get('/user', verifyJWT, async (req, res) => {
+        app.get('/user', verifyJWT, verifyAdmin, async (req, res) => {
             const user = await userCollection.find().toArray()
             res.send(user)
+        })
+
+        app.get('/user/admin/:email', verifyJWT, async (req, res) => {
+            const email = req.params;
+            const user = await userCollection.findOne(email);
+            const isAdmin = user.role === 'admin';
+            res.send({ admin: isAdmin })
         })
 
         // post
@@ -90,7 +109,7 @@ async function run() {
         })
 
         // patch
-        app.patch('/user/admin/:email', verifyJWT, async (req, res) => {
+        app.patch('/user/admin/:email', verifyJWT, verifyAdmin, async (req, res) => {
             const filter = req.params;
             const updateDoc = {
                 $set: { role: 'admin' }
