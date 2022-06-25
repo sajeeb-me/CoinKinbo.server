@@ -40,7 +40,14 @@ async function run() {
         const userCollection = client.db("database").collection("users");
 
         // get
-        app.get('/order', async (req, res) => {
+        app.get('/order', verifyJWT, async (req, res) => {
+            const email = req.query.email;
+            const query = { email }
+            const order = (await orderCollection.find(query).toArray()).reverse();
+            res.send(order)
+        })
+
+        app.get('/all-order', async (req, res) => {
             const simple = await orderCollection.find().toArray();
             res.send(simple)
         })
