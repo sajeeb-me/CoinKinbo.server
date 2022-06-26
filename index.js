@@ -2,7 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const jwt = require('jsonwebtoken')
 require('dotenv').config();
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 
 
@@ -115,6 +115,22 @@ async function run() {
                 $set: { role: 'admin' }
             };
             const result = await userCollection.updateOne(filter, updateDoc);
+            res.send(result)
+        })
+        app.patch('/all-order/:id', verifyJWT, verifyAdmin, async (req, res) => {
+            const id = req.params.id;
+            const deliveryInfo = req.body;
+            // console.log(deliveryInfo);
+            const filter = { _id: ObjectId(id) };
+            const updateDoc = {
+                $set: {
+                    paid: true,
+                    delivered: deliveryInfo.delivered,
+                    deliveryDate: deliveryInfo.deliveryDate
+                }
+            }
+            const result = await orderCollection.updateOne(filter, updateDoc);
+            // sendShipmentInfoEmail(shipmentInfo);
             res.send(result)
         })
 
