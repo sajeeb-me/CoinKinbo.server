@@ -59,27 +59,36 @@ async function run() {
             const order = (await orderCollection.find(query).toArray()).reverse();
             res.send(order)
         })
-
         app.get('/all-order', verifyJWT, verifyAdmin, async (req, res) => {
             const simple = (await orderCollection.find().toArray()).reverse();
             res.send(simple)
         })
-
         app.get('/user', verifyJWT, verifyAdmin, async (req, res) => {
             const user = await userCollection.find().toArray()
             res.send(user)
         })
-
         app.get('/user/admin/:email', verifyJWT, async (req, res) => {
             const email = req.params;
             const user = await userCollection.findOne(email);
             const isAdmin = user.role === 'admin';
             res.send({ admin: isAdmin })
         })
-
+        app.get('/my-wallet', async (req, res) => {
+            const email = req.query.email;
+            const query = { email }
+            const order = (await walletCollection.find(query).toArray()).reverse();
+            res.send(order)
+        })
         app.get('/all-wallet', async (req, res) => {
             const result = (await walletCollection.find().toArray()).reverse();
             res.send(result)
+        })
+        app.get('/profile', verifyJWT, async (req, res) => {
+            const email = req.query.email;
+            const filter = { email }
+            // console.log(filter);
+            const user = await userCollection.findOne(filter)
+            res.send(user)
         })
 
 
@@ -155,6 +164,13 @@ async function run() {
             }
             const result = await orderCollection.updateOne(filter, updateDoc);
             // sendShipmentInfoEmail(shipmentInfo);
+            res.send(result)
+        })
+        app.patch('/profile/:email', verifyJWT, async (req, res) => {
+            const filter = req.params;
+            const profile = req.body;
+            const updateDoc = { $set: profile };
+            const result = await userCollection.updateOne(filter, updateDoc);
             res.send(result)
         })
 
