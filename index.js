@@ -103,8 +103,8 @@ async function run() {
             });
         })
         app.post('/update-userWallet', verifyJWT, verifyAdmin, async (req, res) => {
-            // const walletInfo = req.body.wallet;
-            console.log(walletInfo);
+            const walletInfo = req.body.wallet;
+            // console.log(walletInfo);
             const result = await walletCollection.insertOne(walletInfo);
             res.send(result)
         })
