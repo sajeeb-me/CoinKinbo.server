@@ -38,6 +38,7 @@ async function run() {
         await client.connect();
         const orderCollection = client.db("database").collection("orders");
         const userCollection = client.db("database").collection("users");
+        const walletCollection = client.db("userInfo").collection("wallets");
 
         // verifyAdmin 
         const verifyAdmin = async (req, res, next) => {
@@ -76,13 +77,18 @@ async function run() {
             res.send({ admin: isAdmin })
         })
 
+        app.get('/all-wallet', async (req, res) => {
+            const result = (await walletCollection.find().toArray()).reverse();
+            res.send(result)
+        })
+
+
         // post
         app.post('/order', verifyJWT, async (req, res) => {
             const order = req.body;
             const result = await orderCollection.insertOne(order);
             res.send(result)
         })
-
         app.post("/create-payment-intent", verifyJWT, async (req, res) => {
             const { price } = req.body;
             const amount = price * 100;
@@ -96,6 +102,12 @@ async function run() {
                 clientSecret: paymentIntent.client_secret,
             });
         })
+        app.post('/update-userWallet', verifyJWT, verifyAdmin, async (req, res) => {
+            // const walletInfo = req.body.wallet;
+            console.log(walletInfo);
+            const result = await walletCollection.insertOne(walletInfo);
+            res.send(result)
+        })
 
         // put
         app.put('/user/:email', async (req, res) => {
@@ -107,6 +119,16 @@ async function run() {
             const secretToken = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '6h' });
             res.send({ result, secretToken })
         })
+        // app.put('/update-userWallet/:email', verifyJWT, verifyAdmin, async (req, res) => {
+        //     const filter = req.params;
+        //     // console.log('filter', filter);
+        //     const walletInfo = req.body;
+        //     console.log('walletInfo', walletInfo);
+        //     const options = { upsert: true };
+        //     const updateDoc = { $set: walletInfo };
+        //     const result = await walletCollection.updateOne(filter, updateDoc, options);
+        //     res.send(result)
+        // })
 
         // patch
         app.patch('/user/admin/:email', verifyJWT, verifyAdmin, async (req, res) => {
@@ -124,9 +146,11 @@ async function run() {
             const filter = { _id: ObjectId(id) };
             const updateDoc = {
                 $set: {
-                    paid: true,
-                    delivered: deliveryInfo.delivered,
-                    deliveryDate: deliveryInfo.deliveryDate
+                    paymentInfo: {
+                        paid: true,
+                        delivered: deliveryInfo.delivered,
+                        deliveryDate: deliveryInfo.deliveryDate
+                    }
                 }
             }
             const result = await orderCollection.updateOne(filter, updateDoc);
