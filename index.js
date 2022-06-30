@@ -73,13 +73,13 @@ async function run() {
             const isAdmin = user.role === 'admin';
             res.send({ admin: isAdmin })
         })
-        app.get('/my-wallet', async (req, res) => {
+        app.get('/my-wallet', verifyJWT, async (req, res) => {
             const email = req.query.email;
             const query = { email }
             const order = (await walletCollection.find(query).toArray()).reverse();
             res.send(order)
         })
-        app.get('/all-wallet', async (req, res) => {
+        app.get('/all-wallet', verifyJWT, verifyAdmin, async (req, res) => {
             const result = (await walletCollection.find().toArray()).reverse();
             res.send(result)
         })
